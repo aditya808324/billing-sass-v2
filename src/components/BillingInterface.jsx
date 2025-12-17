@@ -176,7 +176,7 @@ const BillingInterface = () => {
                                 <div className="flex justify-between items-start">
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-sm font-medium truncate" title={item.name}>{item.name}</h4>
-                                        <div className="text-xs text-gray-400">₹{item.price.toFixed(2)} each</div>
+                                        <div className="text-xs text-gray-400">₹{Number(item.price || 0).toFixed(2)} each</div>
                                     </div>
                                     <button className="text-danger p-1" onClick={() => removeFromCart(item.productId)}>
                                         <Trash size={16} />
@@ -211,7 +211,7 @@ const BillingInterface = () => {
                 <div className="p-4 bg-surface/50 border-t border-subtle space-y-2">
                     <div className="flex justify-between text-sm">
                         <span>Subtotal</span>
-                        <span>₹{subtotal.toFixed(2)}</span>
+                        <span>₹{Number(subtotal || 0).toFixed(2)}</span>
                     </div>
 
                     {/* Global Discount Input */}
@@ -231,12 +231,12 @@ const BillingInterface = () => {
 
                     <div className="flex justify-between text-sm text-gray-400">
                         <span>Tax (5% GST)</span>
-                        <span>₹{tax.toFixed(2)}</span>
+                        <span>₹{Number(tax || 0).toFixed(2)}</span>
                     </div>
 
                     <div className="flex justify-between text-xl font-bold pt-3 border-t border-dashed border-gray-600">
                         <span>Total</span>
-                        <span className="text-success">₹{total.toFixed(2)}</span>
+                        <span className="text-success">₹{Number(total || 0).toFixed(2)}</span>
                     </div>
 
                     <button
