@@ -26,7 +26,7 @@ const BillingInterface = () => {
             return [...prev, {
                 productId: product.id,
                 name: product.name,
-                price: product.price,
+                price: parseFloat(product.price),
                 quantity: 1,
                 discount: 0
             }];
@@ -151,7 +151,7 @@ const BillingInterface = () => {
                                 <p className="text-sm text-gray-400">{product.category}</p>
                             </div>
                             <div className="flex justify-between items-end mt-2">
-                                <span className="text-lg font-bold text-success">₹{product.price.toFixed(2)}</span>
+                                <span className="text-lg font-bold text-success">₹{Number(product.price).toFixed(2)}</span>
                                 <span className="bg-surface p-1 rounded-full"><Plus size={16} /></span>
                             </div>
                         </div>
