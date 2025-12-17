@@ -70,27 +70,37 @@ const BillingInterface = () => {
     const tax = taxableAmount * 0.05; // 5% GST example
     const total = taxableAmount + tax;
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (cart.length === 0) return;
 
-        // Save Invoice
-        const invoiceData = {
-            id: `INV-${Date.now()}`,
-            date: new Date().toISOString(),
+        // Save Invoice Payload matching API schema
+        const invoicePayload = {
             items: cart,
             subtotal,
-            globalDiscount,
-            tax,
-            total,
-            customerName: 'Customer' // Placeholder
+            discountTotal: globalDiscount,
+            taxTotal: tax,
+            grandTotal: total,
+            customerDetails: { name: 'Walk-in Customer' }, // Default for now
+            paymentMethod: 'CASH',
+            notes: ''
         };
 
-        addInvoice(invoiceData);
-        setCurrentInvoice(invoiceData);
-        setShowInvoice(true);
+        try {
+            await addInvoice(invoicePayload);
+            // We should ideally get the real invoice from backend, but for UI updates we use local data temporarily
+            // Or better, let addInvoice return the real one.
+            const localDisplayInvoice = {
+                ...invoicePayload,
+                id: 'GENERATING...',
+                date: new Date().toISOString()
+            };
 
-        // Clear cart after a moment or manually? 
-        // Usually keep it clear on "New Sale"
+            setCurrentInvoice(localDisplayInvoice);
+            setShowInvoice(true);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to save invoice!');
+        }
     };
 
     const startNewSale = () => {
