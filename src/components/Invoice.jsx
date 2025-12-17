@@ -78,21 +78,21 @@ const Invoice = ({ data, onNewSale }) => {
                     <div className="w-56 space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
                             <span>Subtotal:</span>
-                            <span>₹{data.subtotal.toFixed(2)}</span>
+                            <span>₹{Number(data.subtotal).toFixed(2)}</span>
                         </div>
-                        {data.globalDiscount > 0 && (
+                        {data.discountTotal > 0 && (
                             <div className="flex justify-between text-sm text-red-500">
                                 <span>Extra Discount:</span>
-                                <span>-₹{data.globalDiscount.toFixed(2)}</span>
+                                <span>-₹{Number(data.discountTotal).toFixed(2)}</span>
                             </div>
                         )}
                         <div className="flex justify-between text-sm text-gray-600">
                             <span>GST (5%):</span>
-                            <span>₹{data.tax.toFixed(2)}</span>
+                            <span>₹{Number(data.taxTotal || data.tax).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-xl font-bold text-indigo-900 border-t border-gray-200 pt-2 mt-2">
                             <span>Grand Total:</span>
-                            <span>₹{data.total.toFixed(2)}</span>
+                            <span>₹{Number(data.grandTotal || data.total).toFixed(2)}</span>
                         </div>
                     </div>
                 </div>

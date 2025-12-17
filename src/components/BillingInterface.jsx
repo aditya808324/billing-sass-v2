@@ -99,7 +99,7 @@ const BillingInterface = () => {
             setShowInvoice(true);
         } catch (err) {
             console.error(err);
-            alert('Failed to save invoice!');
+            alert(`Failed to save invoice! Error: ${err.message}`);
         }
     };
 
