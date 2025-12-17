@@ -79,7 +79,7 @@ const ProductManager = () => {
                                 </span>
                             </div>
                             <span className="text-2xl font-bold" style={{ color: 'var(--success)' }}>
-                                ₹{Number(product.price).toFixed(2)}
+                                ₹{Number(product.price || 0).toFixed(2)}
                             </span>
                         </div>
 

@@ -92,7 +92,7 @@ const BillHistory = () => {
                                 </div>
                                 <div className="col-span-1 text-sm">{bill.customer_name}</div>
                                 <div className="col-span-1 text-right font-bold text-success">
-                                    ₹{parseFloat(bill.total).toFixed(2)}
+                                    ₹{Number(bill.total || 0).toFixed(2)}
                                 </div>
                                 <div className="col-span-1 flex justify-center">
                                     <button

@@ -28,13 +28,13 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
                     title="Total Revenue"
-                    value={`₹${totalRevenue.toFixed(2)}`}
+                    value={`₹${(totalRevenue || 0).toFixed(2)}`}
                     icon={IndianRupee}
                     color="bg-green-500"
                 />
                 <StatCard
                     title="Today's Sales"
-                    value={`₹${todaySales.toFixed(2)}`}
+                    value={`₹${(todaySales || 0).toFixed(2)}`}
                     icon={TrendingUp}
                     color="bg-indigo-500"
                 />
@@ -82,7 +82,7 @@ const Dashboard = () => {
                                         </td>
                                         <td className="p-3 text-sm">{inv.customerName || 'Walk-in'}</td>
                                         <td className="p-3 text-right font-bold text-success">
-                                            ₹{inv.total.toFixed(2)}
+                                            ₹{Number(inv.total || 0).toFixed(2)}
                                         </td>
                                         <td className="p-3 text-center">
                                             <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/30">
