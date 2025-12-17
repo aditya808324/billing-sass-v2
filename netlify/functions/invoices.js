@@ -30,34 +30,58 @@ export const handler = async (event, context) => {
         if (event.httpMethod === 'POST') {
             const data = JSON.parse(event.body);
 
-            const countRes = await pool.query('SELECT count(*) FROM invoices WHERE user_id = $1', [user.userId]);
-            const nextNum = parseInt(countRes.rows[0].count) + 1;
+            // Start Transaction to ensure Stock Consistency
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
 
-            const userRes = await pool.query('SELECT invoice_prefix FROM users WHERE id = $1', [user.userId]);
-            const prefix = userRes.rows[0].invoice_prefix || 'INV-';
-            const invoiceNumber = `${prefix}${String(nextNum).padStart(4, '0')}`;
+                const countRes = await client.query('SELECT count(*) FROM invoices WHERE user_id = $1', [user.userId]);
+                const nextNum = parseInt(countRes.rows[0].count) + 1;
 
-            const result = await pool.query(
-                `INSERT INTO invoices (
-                    user_id, invoice_number, customer_id, customer_snapshot, 
-                    items_snapshot, subtotal, tax_total, discount_total, grand_total, payment_method, notes
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                RETURNING *`,
-                [
-                    user.userId,
-                    invoiceNumber,
-                    data.customerId || null,
-                    JSON.stringify(data.customerDetails || {}),
-                    JSON.stringify(data.items || []),
-                    data.subtotal,
-                    data.taxTotal,
-                    data.discountTotal || 0,
-                    data.grandTotal,
-                    data.paymentMethod || 'CASH',
-                    data.notes
-                ]
-            );
-            return sendResponse(201, result.rows[0]);
+                const userRes = await client.query('SELECT invoice_prefix FROM users WHERE id = $1', [user.userId]);
+                const prefix = userRes.rows[0].invoice_prefix || 'INV-';
+                const invoiceNumber = `${prefix}${String(nextNum).padStart(4, '0')}`;
+
+                // Deduct Stock
+                const items = data.items || [];
+                for (const item of items) {
+                    if (item.productId) {
+                        await client.query(
+                            'UPDATE products SET stock = stock - $1 WHERE id = $2 AND user_id = $3',
+                            [item.quantity, item.productId, user.userId]
+                        );
+                    }
+                }
+
+                const result = await client.query(
+                    `INSERT INTO invoices (
+                        user_id, invoice_number, customer_id, customer_snapshot, 
+                        items_snapshot, subtotal, tax_total, discount_total, grand_total, payment_method, notes
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    RETURNING *`,
+                    [
+                        user.userId,
+                        invoiceNumber,
+                        data.customerId || null,
+                        JSON.stringify(data.customerDetails || {}),
+                        JSON.stringify(items),
+                        data.subtotal,
+                        data.taxTotal,
+                        data.discountTotal || 0,
+                        data.grandTotal,
+                        data.paymentMethod || 'CASH',
+                        data.notes
+                    ]
+                );
+
+                await client.query('COMMIT');
+                return sendResponse(201, result.rows[0]);
+            } catch (err) {
+                await client.query('ROLLBACK');
+                throw err;
+            } finally {
+                client.release();
+            }
         }
 
         return sendResponse(405, { error: 'Method Not Allowed' });

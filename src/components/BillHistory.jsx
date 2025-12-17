@@ -11,8 +11,11 @@ const BillHistory = () => {
     const fetchBills = async (search = '') => {
         setLoading(true);
         try {
+            const token = localStorage.getItem('token');
             const query = search ? `?search=${encodeURIComponent(search)}` : '';
-            const res = await fetch(`/api/bills${query}`);
+            const res = await fetch(`/api/invoices${query}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setBills(data);
@@ -58,7 +61,7 @@ const BillHistory = () => {
                     <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Search by name or bill no..."
+                        placeholder="Search by name, phone or bill no..."
                         className="w-full pl-10 pr-4 py-2 bg-surface border border-subtle rounded-lg focus:outline-none focus:border-primary transition-colors"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -67,10 +70,11 @@ const BillHistory = () => {
             </div>
 
             <div className="bg-surface rounded-xl border border-subtle flex-1 overflow-hidden flex flex-col shadow-2xl">
-                <div className="grid grid-cols-5 p-4 border-b border-subtle text-gray-400 text-sm font-medium">
-                    <div className="col-span-1">Bill Number</div>
+                <div className="grid grid-cols-6 p-4 border-b border-subtle text-gray-400 text-sm font-medium">
+                    <div className="col-span-1">Bill No</div>
                     <div className="col-span-1">Date</div>
                     <div className="col-span-1">Customer</div>
+                    <div className="col-span-1">Phone</div>
                     <div className="col-span-1 text-right">Amount</div>
                     <div className="col-span-1 text-center">Action</div>
                 </div>
@@ -84,22 +88,29 @@ const BillHistory = () => {
                         <div className="text-center text-gray-500 mt-10">No bills found</div>
                     ) : (
                         bills.map(bill => (
-                            <div key={bill.id} className="grid grid-cols-5 p-4 bg-app rounded-lg hover:bg-white/5 transition-colors items-center border border-transparent hover:border-subtle group">
-                                <div className="col-span-1 font-mono text-sm text-indigo-300">{bill.id}</div>
+                            <div key={bill.id} className="grid grid-cols-6 p-4 bg-app rounded-lg hover:bg-white/5 transition-colors items-center border border-transparent hover:border-subtle group">
+                                <div className="col-span-1 font-mono text-sm text-indigo-300">{bill.invoice_number}</div>
                                 <div className="col-span-1 text-sm text-gray-400 flex items-center gap-2">
                                     <Calendar size={14} />
                                     {new Date(bill.created_at).toLocaleDateString()}
                                 </div>
-                                <div className="col-span-1 text-sm">{bill.customer_name}</div>
+                                <div className="col-span-1 text-sm">{bill.customer_snapshot?.name || 'Walk-in'}</div>
+                                <div className="col-span-1 text-sm text-gray-400">{bill.customer_snapshot?.phone || '-'}</div>
                                 <div className="col-span-1 text-right font-bold text-success">
-                                    ₹{Number(bill.total || 0).toFixed(2)}
+                                    ₹{Number(bill.grand_total || 0).toFixed(2)}
                                 </div>
                                 <div className="col-span-1 flex justify-center">
                                     <button
                                         onClick={() => setSelectedBill({
                                             ...bill,
+                                            id: bill.invoice_number,
                                             date: bill.created_at,
-                                            items: bill.items // Assuming JSON is parsed automatically by client or we need accessors
+                                            items: bill.items_snapshot,
+                                            subtotal: bill.subtotal,
+                                            taxTotal: bill.tax_total,
+                                            discountTotal: bill.discount_total,
+                                            grandTotal: bill.grand_total,
+                                            customerDetails: bill.customer_snapshot
                                         })}
                                         className="p-2 text-primary hover:bg-primary/20 rounded-full transition-colors opacity-0 group-hover:opacity-100"
                                         title="View/Print"
