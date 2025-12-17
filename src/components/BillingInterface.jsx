@@ -12,8 +12,11 @@ const BillingInterface = () => {
     const [globalDiscount, setGlobalDiscount] = useState(0);
     const [showInvoice, setShowInvoice] = useState(false);
     const [currentInvoice, setCurrentInvoice] = useState(null);
+    const [customerName, setCustomerName] = useState('');
+    const [customerPhone, setCustomerPhone] = useState('');
 
     const addToCart = (product) => {
+        // ... unchanged ...
         setCart(prev => {
             const existing = prev.find(item => item.productId === product.id);
             if (existing) {
@@ -33,42 +36,7 @@ const BillingInterface = () => {
         });
     };
 
-    const updateItem = (productId, field, value) => {
-        setCart(prev => prev.map(item => {
-            if (item.productId === productId) {
-                if (field === 'quantity') {
-                    return { ...item, quantity: Math.max(1, value) };
-                }
-                if (field === 'discount') {
-                    return { ...item, discount: Math.max(0, value) };
-                }
-            }
-            return item;
-        }));
-    };
-
-    const removeFromCart = (productId) => {
-        setCart(prev => prev.filter(item => item.productId !== productId));
-    };
-
-    const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Calculations
-    const subtotal = cart.reduce((acc, item) => {
-        const itemTotal = (item.price - item.discount) * item.quantity;
-        return acc + Math.max(0, itemTotal);
-    }, 0);
-
-    const taxRate = 0.00; // Assuming tax is manual or 0 for now based on request focusing on discounts. Let's keep it simple or 0. Instructions didn't specify TAX change, but let's keep it flexible.
-    // Actually, let's keep tax but apply after global discount usually, or on subtotal?
-    // Common simple shop practice: Subtotal (after item disc) - Global Discount + Tax.
-
-    const taxableAmount = Math.max(0, subtotal - globalDiscount);
-    const tax = taxableAmount * 0.05; // 5% GST example
-    const total = taxableAmount + tax;
+    // ... existing functions ...
 
     const handleCheckout = async () => {
         if (cart.length === 0) return;
@@ -80,7 +48,10 @@ const BillingInterface = () => {
             discountTotal: globalDiscount,
             taxTotal: tax,
             grandTotal: total,
-            customerDetails: { name: 'Walk-in Customer' }, // Default for now
+            customerDetails: {
+                name: customerName || 'Walk-in Customer',
+                phone: customerPhone || ''
+            },
             paymentMethod: 'CASH',
             notes: ''
         };
@@ -168,8 +139,26 @@ const BillingInterface = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+                    {/* Customer Details Inputs */}
+                    <div className="bg-surface p-3 rounded-lg border border-subtle space-y-2 mb-2">
+                        <input
+                            type="text"
+                            placeholder="Customer Name"
+                            className="w-full bg-app border border-subtle rounded p-2 text-sm focus:border-primary focus:outline-none"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                        />
+                        <input
+                            type="tel"
+                            placeholder="Customer Phone"
+                            className="w-full bg-app border border-subtle rounded p-2 text-sm focus:border-primary focus:outline-none"
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                        />
+                    </div>
+
                     {cart.length === 0 ? (
-                        <div className="text-center text-gray-500 mt-10">Cart is empty</div>
+                        <div className="text-center text-gray-500 mt-2">Cart is empty</div>
                     ) : (
                         cart.map(item => (
                             <div key={item.productId} className="flex flex-col gap-2 bg-surface p-3 rounded-lg border border-subtle">

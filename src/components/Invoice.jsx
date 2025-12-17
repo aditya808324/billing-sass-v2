@@ -1,6 +1,10 @@
-import { Printer, CheckCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Invoice = ({ data, onNewSale }) => {
+    const { user } = useAuth();
+
+    // ... existing handlePrint and formatDate ...
+
     const handlePrint = () => {
         window.print();
     };
@@ -34,9 +38,18 @@ const Invoice = ({ data, onNewSale }) => {
                 {/* Header */}
                 <div className="flex justify-between items-start border-b border-gray-200 pb-6 mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-indigo-600 mb-1">NeoBill Shop</h1>
-                        <p className="text-gray-500 text-sm">123 Market Street, Cityville, IN</p>
-                        <p className="text-gray-500 text-sm">GSTIN: 29ABCDE1234F1Z5</p>
+                        <div className="flex items-center gap-4 mb-2">
+                            {user?.logo_url && (
+                                <img src={user.logo_url} alt="Logo" className="w-16 h-16 object-contain" />
+                            )}
+                            <h1 className="text-3xl font-bold text-indigo-600">{user?.business_name || 'My Shop'}</h1>
+                        </div>
+                        <p className="text-gray-500 text-sm whitespace-pre-wrap">{user?.address || 'Address Not Set'}</p>
+                        {user?.gst_number && (
+                            <p className="text-gray-500 text-sm font-medium mt-1">GSTIN: {user.gst_number}</p>
+                        )}
+                        <p className="text-gray-500 text-sm">Phone: {user?.phone || ''}</p>
+                        <p className="text-gray-500 text-sm">Email: {user?.email || ''}</p>
                     </div>
                     <div className="text-right">
                         <p className="font-mono text-gray-500 mb-1">Invoice #{data.id.slice(-8).toUpperCase()}</p>
