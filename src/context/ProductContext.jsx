@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const ProductContext = createContext();
 
@@ -9,30 +10,80 @@ export const useProducts = () => {
 };
 
 export const ProductProvider = ({ children }) => {
-    const [products, setProducts] = useState(() => {
-        const saved = localStorage.getItem('products');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const { user } = useAuth();
+
+    const fetchProducts = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/products', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setProducts(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch products', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        localStorage.setItem('products', JSON.stringify(products));
-    }, [products]);
+        fetchProducts();
+    }, [user]);
 
-    const addProduct = (product) => {
-        const newProduct = { ...product, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-        setProducts(prev => [newProduct, ...prev]);
+    const addProduct = async (product) => {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/products', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(product)
+        });
+        if (res.ok) {
+            const newProduct = await res.json();
+            setProducts(prev => [...prev, newProduct]);
+            return newProduct;
+        }
+        throw new Error('Failed to add product');
     };
 
-    const deleteProduct = (id) => {
-        setProducts(prev => prev.filter(p => p.id !== id));
+    const deleteProduct = async (id) => {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/products/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+            setProducts(prev => prev.filter(p => p.id !== id));
+        }
     };
 
-    const updateProduct = (id, updatedData) => {
-        setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
+    const updateProduct = async (id, updatedData) => {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(updatedData)
+        });
+        if (res.ok) {
+            const updated = await res.json();
+            setProducts(prev => prev.map(p => p.id === id ? updated : p));
+        }
     };
 
     return (
-        <ProductContext.Provider value={{ products, addProduct, deleteProduct, updateProduct }}>
+        <ProductContext.Provider value={{ products, loading, addProduct, deleteProduct, updateProduct, refreshProducts: fetchProducts }}>
             {children}
         </ProductContext.Provider>
     );

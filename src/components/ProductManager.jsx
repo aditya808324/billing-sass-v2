@@ -6,33 +6,44 @@ const ProductManager = () => {
     const { products, addProduct, deleteProduct } = useProducts();
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     // Form State
     const [formData, setFormData] = useState({
         name: '',
         price: '',
         category: '',
-        stock: ''
+        gst_rate: ''
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
         if (!formData.name || !formData.price) return;
 
-        addProduct({
-            name: formData.name,
-            price: parseFloat(formData.price),
-            category: formData.category || 'General',
-            stock: parseInt(formData.stock) || 0
-        });
+        setIsLoading(true);
+        try {
+            await addProduct({
+                name: formData.name,
+                price: parseFloat(formData.price),
+                category: formData.category || 'General',
+                gst_rate: parseFloat(formData.gst_rate) || 0
+            });
 
-        setFormData({ name: '', price: '', category: '', stock: '' });
-        setShowModal(false);
+            setFormData({ name: '', price: '', category: '', gst_rate: '' });
+            setShowModal(false);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to save product. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchTerm.toLowerCase())
+        p.category?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -64,17 +75,17 @@ const ProductManager = () => {
                             <div>
                                 <h3 className="text-xl">{product.name}</h3>
                                 <span className="text-sm bg-surface px-2 py-1 rounded border border-subtle">
-                                    {product.category}
+                                    {product.category || 'General'}
                                 </span>
                             </div>
                             <span className="text-2xl font-bold" style={{ color: 'var(--success)' }}>
-                                ₹{product.price.toFixed(2)}
+                                ₹{Number(product.price).toFixed(2)}
                             </span>
                         </div>
 
                         <div className="mt-4 flex justify-between items-center text-sm">
-                            <span className={product.stock > 0 ? 'text-gray-300' : 'text-danger'}>
-                                Stock: {product.stock}
+                            <span className="text-gray-400">
+                                GST: {product.gst_rate}%
                             </span>
                             <button
                                 className="text-danger p-2 hover:bg-surface rounded-full transition-colors"
@@ -103,6 +114,8 @@ const ProductManager = () => {
                 }} onClick={() => setShowModal(false)}>
                     <div className="card" style={{ width: '400px' }} onClick={e => e.stopPropagation()}>
                         <h2 className="text-2xl mb-6">Add New Product</h2>
+                        {error && <div className="bg-red-500/20 text-red-300 p-3 rounded mb-4">{error}</div>}
+
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                             <div>
                                 <label className="text-sm">Product Name</label>
@@ -118,7 +131,7 @@ const ProductManager = () => {
 
                             <div className="flex gap-4">
                                 <div className="flex-1">
-                                    <label className="text-sm">Price</label>
+                                    <label className="text-sm">Price (₹)</label>
                                     <input
                                         type="number" step="0.01"
                                         value={formData.price}
@@ -128,12 +141,13 @@ const ProductManager = () => {
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <label className="text-sm">Stock</label>
+                                    <label className="text-sm">GST (%)</label>
                                     <input
-                                        type="number"
-                                        value={formData.stock}
-                                        onChange={e => setFormData({ ...formData, stock: e.target.value })}
+                                        type="number" step="0.1"
+                                        value={formData.gst_rate}
+                                        onChange={e => setFormData({ ...formData, gst_rate: e.target.value })}
                                         style={{ width: '100%' }}
+                                        placeholder="0"
                                     />
                                 </div>
                             </div>
@@ -151,6 +165,7 @@ const ProductManager = () => {
                                     <option value="Electronics" />
                                     <option value="Groceries" />
                                     <option value="Clothing" />
+                                    <option value="Services" />
                                 </datalist>
                             </div>
 
@@ -158,8 +173,8 @@ const ProductManager = () => {
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">
-                                    Save Product
+                                <button type="submit" disabled={isLoading} className="btn btn-primary">
+                                    {isLoading ? 'Saving...' : 'Save Product'}
                                 </button>
                             </div>
                         </form>
