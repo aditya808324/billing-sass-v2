@@ -63,6 +63,41 @@ const BillingInterface = () => {
 
     // ... existing functions ...
 
+    const updateItem = (productId, field, value) => {
+        setCart(prev => prev.map(item => {
+            if (item.productId === productId) {
+                if (field === 'quantity') {
+                    return { ...item, quantity: Math.max(1, value) };
+                }
+                if (field === 'discount') {
+                    return { ...item, discount: Math.max(0, value) };
+                }
+            }
+            return item;
+        }));
+    };
+
+    const removeFromCart = (productId) => {
+        setCart(prev => prev.filter(item => item.productId !== productId));
+    };
+
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Calculations
+    const subtotal = cart.reduce((acc, item) => {
+        const itemTotal = (item.price - item.discount) * item.quantity;
+        return acc + Math.max(0, itemTotal);
+    }, 0);
+
+    const taxableAmount = Math.max(0, subtotal - globalDiscount);
+    const tax = taxableAmount * 0.05; // 5% GST
+    const total = taxableAmount + tax;
+
+    const [loading, setLoading] = useState(false); // Define loading state locally for UI feedback
+
     const handleCheckout = async () => {
         if (cart.length === 0) return;
 
@@ -253,13 +288,42 @@ const BillingInterface = () => {
                         <span className="text-success">₹{Number(total || 0).toFixed(2)}</span>
                     </div>
 
+                    {/* Change Calculator */}
+                    <div className="bg-app p-2 rounded border border-subtle mt-2">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-gray-400">Cash Received (Ctrl+Space)</span>
+                            <input
+                                id="cashInput"
+                                type="number"
+                                className="w-24 p-1 text-right bg-black/20 border border-subtle rounded text-sm text-yellow-400 font-bold focus:border-yellow-500 focus:outline-none"
+                                placeholder="0"
+                                value={cashReceived || ''}
+                                onChange={(e) => setCashReceived(parseFloat(e.target.value) || 0)}
+                            />
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-400">Change to Return</span>
+                            <span className={`text-lg font-bold ${cashReceived >= total ? 'text-green-400' : 'text-red-400'}`}>
+                                ₹{Math.max(0, (cashReceived || 0) - total).toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+
                     <button
-                        className="btn btn-primary w-full justify-center py-3 text-lg mt-3"
+                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all flex justify-center items-center gap-2 mt-3"
                         onClick={handleCheckout}
-                        disabled={cart.length === 0}
+                        disabled={cart.length === 0 || loading}
+                        title="Press Ctrl + Enter"
                     >
-                        <Printer size={20} /> Generate Invoice
+                        {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> :
+                            <>
+                                <Printer size={20} /> Checkout & Print
+                            </>
+                        }
                     </button>
+                    <div className="text-center text-[10px] text-gray-500 font-mono mt-1">
+                        Shortcuts: [/] Search • [Ctrl+Space] Cash • [Ctrl+Enter] Print
+                    </div>
                 </div>
             </div>
         </div>
