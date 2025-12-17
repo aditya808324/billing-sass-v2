@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProducts } from '../context/ProductContext';
 import { useInvoices } from '../context/InvoiceContext';
 import { Search, Plus, Minus, Trash, Printer, ShoppingCart, IndianRupee } from 'lucide-react';
