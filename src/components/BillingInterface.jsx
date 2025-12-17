@@ -10,10 +10,35 @@ const BillingInterface = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [cart, setCart] = useState([]);
     const [globalDiscount, setGlobalDiscount] = useState(0);
+    const [cashReceived, setCashReceived] = useState(0);
     const [showInvoice, setShowInvoice] = useState(false);
     const [currentInvoice, setCurrentInvoice] = useState(null);
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Search: /
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                document.getElementById('searchInput')?.focus();
+            }
+            // Checkout: Ctrl + Enter
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                handleCheckout();
+            }
+            // Cash Input: Ctrl + Space
+            if (e.ctrlKey && e.key === ' ') {
+                e.preventDefault();
+                document.getElementById('cashInput')?.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [cart, globalDiscount, customerName, customerPhone]); // Dependencies specific to checkout
 
     const addToCart = (product) => {
         // ... unchanged ...
