@@ -15,7 +15,8 @@ const ProductManager = () => {
         price: '',
         category: '',
         gst_rate: '',
-        stock: '0'
+        stock: '0',
+        hsn_code: ''
     });
 
     const handleSubmit = async (e) => {
@@ -30,10 +31,11 @@ const ProductManager = () => {
                 price: parseFloat(formData.price),
                 category: formData.category || 'General',
                 gst_rate: parseFloat(formData.gst_rate) || 0,
-                stock: parseFloat(formData.stock) || 0
+                stock: parseFloat(formData.stock) || 0,
+                hsn_code: formData.hsn_code || ''
             });
 
-            setFormData({ name: '', price: '', category: '', gst_rate: '', stock: '0' });
+            setFormData({ name: '', price: '', category: '', gst_rate: '', stock: '0', hsn_code: '' });
             setShowModal(false);
         } catch (err) {
             console.error(err);
@@ -157,6 +159,16 @@ const ProductManager = () => {
                                         onChange={e => setFormData({ ...formData, gst_rate: e.target.value })}
                                         style={{ width: '100%' }}
                                         placeholder="0"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="text-sm">HSN Code</label>
+                                    <input
+                                        type="text"
+                                        value={formData.hsn_code}
+                                        onChange={e => setFormData({ ...formData, hsn_code: e.target.value })}
+                                        style={{ width: '100%' }}
+                                        placeholder="e.g. 8471"
                                     />
                                 </div>
                             </div>

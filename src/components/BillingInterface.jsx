@@ -56,7 +56,9 @@ const BillingInterface = () => {
                 name: product.name,
                 price: parseFloat(product.price),
                 quantity: 1,
-                discount: 0
+                discount: 0,
+                gst_rate: parseFloat(product.gst_rate) || 0,
+                hsn_code: product.hsn_code || ''
             }];
         });
     };
@@ -87,14 +89,27 @@ const BillingInterface = () => {
     );
 
     // Calculations
-    const subtotal = cart.reduce((acc, item) => {
-        const itemTotal = (item.price - item.discount) * item.quantity;
-        return acc + Math.max(0, itemTotal);
-    }, 0);
+    // GST Compliance Calculations
+    const itemsWithTax = cart.map(item => {
+        const itemSubtotal = (item.price - item.discount) * item.quantity;
+        const taxAmount = itemSubtotal * (item.gst_rate / 100);
+        return {
+            ...item,
+            itemTotal: itemSubtotal + taxAmount,
+            taxAmount
+        };
+    });
 
-    const taxableAmount = Math.max(0, subtotal - globalDiscount);
-    const tax = taxableAmount * 0.05; // 5% GST
-    const total = taxableAmount + tax;
+    const subtotal = itemsWithTax.reduce((acc, item) => acc + (item.price - item.discount) * item.quantity, 0);
+    const taxTotal = itemsWithTax.reduce((acc, item) => acc + item.taxAmount, 0);
+
+    // CGST and SGST split (50/50)
+    const cgst = taxTotal / 2;
+    const sgst = taxTotal / 2;
+
+    const rawTotal = subtotal + taxTotal - globalDiscount;
+    const total = Math.round(rawTotal); // Round to nearest Rupee
+    const roundOff = (total - rawTotal).toFixed(2);
 
     const [loading, setLoading] = useState(false); // Define loading state locally for UI feedback
 
@@ -103,10 +118,13 @@ const BillingInterface = () => {
 
         // Save Invoice Payload matching API schema
         const invoicePayload = {
-            items: cart,
+            items: itemsWithTax,
             subtotal,
             discountTotal: globalDiscount,
-            taxTotal: tax,
+            taxTotal: taxTotal,
+            cgst,
+            sgst,
+            roundOff,
             grandTotal: total,
             customerDetails: {
                 name: customerName || 'Walk-in Customer',
@@ -279,8 +297,20 @@ const BillingInterface = () => {
                     </div>
 
                     <div className="flex justify-between text-sm text-gray-400">
-                        <span>Tax (5% GST)</span>
-                        <span>₹{Number(tax || 0).toFixed(2)}</span>
+                        <span>CGST (Central Tax)</span>
+                        <span>₹{Number(cgst || 0).toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-gray-400">
+                        <span>SGST (State Tax)</span>
+                        <span>₹{Number(sgst || 0).toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-gray-400">
+                        <span>Round Off</span>
+                        <span className={Number(roundOff) >= 0 ? "text-success" : "text-danger"}>
+                            {Number(roundOff) >= 0 ? '+' : ''}{roundOff}
+                        </span>
                     </div>
 
                     <div className="flex justify-between text-xl font-bold pt-3 border-t border-dashed border-gray-600">
