@@ -89,27 +89,11 @@ const BillingInterface = () => {
     );
 
     // Calculations
-    // GST Compliance Calculations
-    const itemsWithTax = cart.map(item => {
-        const itemSubtotal = (item.price - item.discount) * item.quantity;
-        const taxAmount = itemSubtotal * (item.gst_rate / 100);
-        return {
-            ...item,
-            itemTotal: itemSubtotal + taxAmount,
-            taxAmount
-        };
-    });
+    // Inclusive Tax Calculations
+    const subtotal = cart.reduce((acc, item) => acc + (item.price - item.discount) * item.quantity, 0);
 
-    const subtotal = itemsWithTax.reduce((acc, item) => acc + (item.price - item.discount) * item.quantity, 0);
-    const taxTotal = itemsWithTax.reduce((acc, item) => acc + item.taxAmount, 0);
-
-    // CGST and SGST split (50/50)
-    const cgst = taxTotal / 2;
-    const sgst = taxTotal / 2;
-
-    const rawTotal = subtotal + taxTotal - globalDiscount;
-    const total = Math.round(rawTotal); // Round to nearest Rupee
-    const roundOff = (total - rawTotal).toFixed(2);
+    const total = Math.max(0, Math.round(subtotal - globalDiscount));
+    const roundOff = (total - (subtotal - globalDiscount)).toFixed(2);
 
     const [loading, setLoading] = useState(false); // Define loading state locally for UI feedback
 
@@ -118,12 +102,10 @@ const BillingInterface = () => {
 
         // Save Invoice Payload matching API schema
         const invoicePayload = {
-            items: itemsWithTax,
+            items: cart,
             subtotal,
             discountTotal: globalDiscount,
-            taxTotal: taxTotal,
-            cgst,
-            sgst,
+            taxTotal: 0, // Tax is inclusive
             roundOff,
             grandTotal: total,
             customerDetails: {
@@ -131,7 +113,7 @@ const BillingInterface = () => {
                 phone: customerPhone || ''
             },
             paymentMethod: 'CASH',
-            notes: ''
+            notes: 'GST is inclusive in product price'
         };
 
         try {
@@ -265,8 +247,8 @@ const BillingInterface = () => {
                                             type="number"
                                             className="w-16 p-1 text-xs text-right bg-app border-subtle"
                                             placeholder="0"
-                                            value={item.discount || ''}
-                                            onChange={(e) => updateItem(item.productId, 'discount', parseFloat(e.target.value) || 0)}
+                                            value={item.discount === 0 ? '0' : (item.discount || '')}
+                                            onChange={(e) => updateItem(item.productId, 'discount', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                                         />
                                     </div>
                                 </div>
@@ -289,21 +271,11 @@ const BillingInterface = () => {
                             <input
                                 type="number"
                                 className="w-20 p-1 text-right bg-app border-subtle rounded"
-                                value={globalDiscount || ''}
+                                value={globalDiscount === 0 ? '0' : (globalDiscount || '')}
                                 placeholder="0"
-                                onChange={(e) => setGlobalDiscount(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => setGlobalDiscount(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                             />
                         </div>
-                    </div>
-
-                    <div className="flex justify-between text-sm text-gray-400">
-                        <span>CGST (Central Tax)</span>
-                        <span>₹{Number(cgst || 0).toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex justify-between text-sm text-gray-400">
-                        <span>SGST (State Tax)</span>
-                        <span>₹{Number(sgst || 0).toFixed(2)}</span>
                     </div>
 
                     <div className="flex justify-between text-sm text-gray-400">

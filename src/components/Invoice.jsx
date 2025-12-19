@@ -97,36 +97,7 @@ const Invoice = ({ data, onNewSale }) => {
                     </tbody>
                 </table>
 
-                {/* Tax Breakdown */}
-                <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">GST Tax Breakdown</h3>
-                    <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Central Tax (CGST):</span>
-                                <span className="font-medium">₹{Number(data.cgst || 0).toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">State Tax (SGST):</span>
-                                <span className="font-medium">₹{Number(data.sgst || 0).toFixed(2)}</span>
-                            </div>
-                        </div>
-                        <div className="space-y-1 border-l border-gray-200 pl-8">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Total Tax:</span>
-                                <span className="font-medium">₹{Number(data.taxTotal || 0).toFixed(2)}</span>
-                            </div>
-                            {data.roundOff !== "0.00" && (
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Round Off:</span>
-                                    <span className={Number(data.roundOff) >= 0 ? "text-green-600" : "text-red-600"}>
-                                        {Number(data.roundOff) >= 0 ? '+' : ''}{data.roundOff}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                {/* Tax Breakdown removed as per inclusive GST requirement */}
 
                 {/* Totals */}
                 <div className="flex justify-end border-t-2 border-indigo-600 pt-4">
@@ -142,14 +113,14 @@ const Invoice = ({ data, onNewSale }) => {
                             </div>
                         )}
                         <div className="flex justify-between text-sm text-gray-600">
-                            <span>Total Tax (GST):</span>
-                            <span>₹{Number(data.taxTotal).toFixed(2)}</span>
+                            <span>Tax (GST):</span>
+                            <span className="italic text-xs">Inclusive in Price</span>
                         </div>
                         <div className="flex justify-between text-2xl font-black text-indigo-900 pt-2 border-t border-dashed border-gray-300">
                             <span>Total Amount:</span>
                             <span>₹{Number(data.grandTotal).toFixed(2)}</span>
                         </div>
-                        <p className="text-[10px] text-right text-gray-400 italic">** Amount rounded to nearest Rupee</p>
+                        <p className="text-[10px] text-right text-gray-400 italic">** GST is inclusive in the product price</p>
                     </div>
                 </div>
 
