@@ -14,7 +14,8 @@ const ProductManager = () => {
         name: '',
         price: '',
         category: '',
-        gst_rate: ''
+        gst_rate: '',
+        stock: '0'
     });
 
     const handleSubmit = async (e) => {
@@ -28,10 +29,11 @@ const ProductManager = () => {
                 name: formData.name,
                 price: parseFloat(formData.price),
                 category: formData.category || 'General',
-                gst_rate: parseFloat(formData.gst_rate) || 0
+                gst_rate: parseFloat(formData.gst_rate) || 0,
+                stock: parseFloat(formData.stock) || 0
             });
 
-            setFormData({ name: '', price: '', category: '', gst_rate: '' });
+            setFormData({ name: '', price: '', category: '', gst_rate: '', stock: '0' });
             setShowModal(false);
         } catch (err) {
             console.error(err);
@@ -80,6 +82,13 @@ const ProductManager = () => {
                             </div>
                             <span className="text-2xl font-bold" style={{ color: 'var(--success)' }}>
                                 ₹{Number(product.price || 0).toFixed(2)}
+                            </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-sm py-1 px-2 bg-surface rounded">
+                            <span className="text-gray-400">Stock Available</span>
+                            <span className={`font-bold ${product.stock <= 5 ? 'text-danger' : 'text-success'}`}>
+                                {Number(product.stock || 0)} units
                             </span>
                         </div>
 
@@ -152,21 +161,33 @@ const ProductManager = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="text-sm">Category</label>
-                                <input
-                                    type="text"
-                                    value={formData.category}
-                                    onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                    list="categories"
-                                    style={{ width: '100%' }}
-                                />
-                                <datalist id="categories">
-                                    <option value="Electronics" />
-                                    <option value="Groceries" />
-                                    <option value="Clothing" />
-                                    <option value="Services" />
-                                </datalist>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="text-sm">Category</label>
+                                    <input
+                                        type="text"
+                                        value={formData.category}
+                                        onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                        list="categories"
+                                        style={{ width: '100%' }}
+                                    />
+                                    <datalist id="categories">
+                                        <option value="Electronics" />
+                                        <option value="Groceries" />
+                                        <option value="Clothing" />
+                                        <option value="Services" />
+                                    </datalist>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="text-sm">Initial Stock</label>
+                                    <input
+                                        type="number"
+                                        value={formData.stock}
+                                        onChange={e => setFormData({ ...formData, stock: e.target.value })}
+                                        style={{ width: '100%' }}
+                                        placeholder="0"
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-3 mt-4">

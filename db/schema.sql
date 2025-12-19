@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS products (
   category TEXT,
   price NUMERIC(10,2) DEFAULT 0,
   gst_rate NUMERIC(5,2) DEFAULT 0,
+  stock NUMERIC(10,2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -31,14 +31,14 @@ export const handler = async (event, context) => {
         }
 
         if (event.httpMethod === 'POST') {
-            const { name, category, price, gst_rate } = JSON.parse(event.body);
+            const { name, category, price, gst_rate, stock } = JSON.parse(event.body);
             if (!name || price === undefined) return sendResponse(400, { error: 'Name and Price required' });
 
             const result = await pool.query(
-                `INSERT INTO products (user_id, name, category, price, gst_rate) 
-                 VALUES ($1, $2, $3, $4, $5) 
+                `INSERT INTO products (user_id, name, category, price, gst_rate, stock) 
+                 VALUES ($1, $2, $3, $4, $5, $6) 
                  RETURNING *`,
-                [user.userId, name, category, price, gst_rate || 0]
+                [user.userId, name, category, price, gst_rate || 0, stock || 0]
             );
             return sendResponse(201, result.rows[0]);
         }
@@ -46,13 +46,13 @@ export const handler = async (event, context) => {
         if (event.httpMethod === 'PUT') {
             if (!isIdRequest) return sendResponse(400, { error: 'Product ID required' });
 
-            const { name, category, price, gst_rate } = JSON.parse(event.body);
+            const { name, category, price, gst_rate, stock } = JSON.parse(event.body);
             const result = await pool.query(
                 `UPDATE products 
-                  SET name = $1, category = $2, price = $3, gst_rate = $4 
-                  WHERE id = $5 AND user_id = $6 
+                  SET name = $1, category = $2, price = $3, gst_rate = $4, stock = $5 
+                  WHERE id = $6 AND user_id = $7 
                   RETURNING *`,
-                [name, category, price, gst_rate, id, user.userId]
+                [name, category, price, gst_rate, stock || 0, id, user.userId]
             );
 
             if (result.rows.length === 0) return sendResponse(404, { error: 'Product not found' });
