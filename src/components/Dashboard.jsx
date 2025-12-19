@@ -1,9 +1,29 @@
+import { useState, useEffect } from 'react';
 import { useInvoices } from '../context/InvoiceContext';
-import { TrendingUp, Calendar, FileText, IndianRupee } from 'lucide-react';
+import { TrendingUp, Calendar, FileText, IndianRupee, Download } from 'lucide-react';
 
 const Dashboard = () => {
     const { invoices, getStats } = useInvoices();
     const { totalRevenue, totalInvoices, todaySales } = getStats();
+    const [installPrompt, setInstallPrompt] = useState(null);
+
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault();
+            setInstallPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstall = async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        const { outcome } = await installPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setInstallPrompt(null);
+        }
+    };
 
     const StatCard = ({ title, value, icon: Icon, color }) => (
         <div className="card p-6 flex items-start justify-between relative overflow-hidden group">
@@ -24,6 +44,26 @@ const Dashboard = () => {
 
     return (
         <div className="flex flex-col gap-8 animate-fade-in">
+            {/* PWA Install Banner */}
+            {installPrompt && (
+                <div className="bg-indigo-600/20 border border-indigo-500/50 p-4 rounded-xl flex items-center justify-between gap-4 animate-bounce-subtle">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-500 rounded-lg shadow-lg">
+                            <Download size={20} className="text-white" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white text-sm">Download BillingBox Pro</h4>
+                            <p className="text-xs text-indigo-200">Install as a standalone app for the best offline experience.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleInstall}
+                        className="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-50 transition-colors shadow-xl"
+                    >
+                        Install Now
+                    </button>
+                </div>
+            )}
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
