@@ -47,24 +47,58 @@ const Invoice = ({ data, onNewSale }) => {
             {/* Invoice Paper */}
             <div className="invoice-paper bg-white text-slate-800 p-8 rounded-lg shadow-xl w-full max-w-2xl" id="invoice">
                 {/* Header */}
-                <div className="flex justify-between items-start border-b border-gray-200 pb-6 mb-6">
-                    <div>
-                        <div className="flex items-center gap-4 mb-2">
+                <div className="flex justify-between items-start border-b-2 border-indigo-600 pb-6 mb-6">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-3">
                             {user?.logo_url && (
-                                <img src={user.logo_url} alt="Logo" className="w-16 h-16 object-contain" />
+                                <img src={user.logo_url} alt="Logo" className="w-20 h-20 object-contain rounded-lg border border-gray-100 shadow-sm" />
                             )}
-                            <h1 className="text-3xl font-bold text-indigo-600">{user?.business_name || 'My Shop'}</h1>
+                            <div>
+                                <h1 className="text-3xl font-black text-indigo-900 leading-tight uppercase tracking-tight">{user?.business_name || 'My Shop'}</h1>
+                                {user?.gst_number && (
+                                    <p className="text-xs font-bold text-indigo-600 tracking-wider">GSTIN: {user.gst_number}</p>
+                                )}
+                            </div>
                         </div>
-                        <p className="text-gray-500 text-sm whitespace-pre-wrap">{user?.address || 'Address Not Set'}</p>
-                        {user?.gst_number && (
-                            <p className="text-gray-500 text-sm font-medium mt-1">GSTIN: {user.gst_number}</p>
-                        )}
-                        <p className="text-gray-500 text-sm">Phone: {user?.phone || ''}</p>
-                        <p className="text-gray-500 text-sm">Email: {user?.email || ''}</p>
+                        <div className="space-y-0.5">
+                            <p className="text-gray-600 text-sm leading-relaxed max-w-sm whitespace-pre-wrap">{user?.address || 'Address Not Set'}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2">
+                                <p className="text-gray-500 text-xs flex items-center gap-1">
+                                    <span className="font-semibold text-gray-700">Phone:</span> {user?.phone || 'N/A'}
+                                </p>
+                                <p className="text-gray-500 text-xs flex items-center gap-1">
+                                    <span className="font-semibold text-gray-700">Email:</span> {user?.email || 'N/A'}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="text-right">
-                        <p className="font-mono text-gray-500 mb-1">Invoice #{data.id.slice(-8).toUpperCase()}</p>
-                        <p className="text-sm font-medium">{formatDate(data.date)}</p>
+                    <div className="text-right flex flex-col items-end">
+                        <div className="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 mb-2">
+                            <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Tax Invoice</p>
+                            <p className="font-mono text-xl font-black text-indigo-900">#INV-{data.id.slice(-6).toUpperCase()}</p>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-700">{formatDate(data.date)}</p>
+                    </div>
+                </div>
+
+                {/* Billing Details */}
+                <div className="grid grid-cols-2 gap-8 mb-8">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 border-b border-gray-200 pb-1">Bill To (Customer)</h3>
+                        <div className="space-y-1">
+                            <p className="text-lg font-bold text-slate-800">{data.customerDetails?.name || 'Walk-in Customer'}</p>
+                            {data.customerDetails?.phone && (
+                                <p className="text-sm text-gray-600 flex items-center gap-1.5 font-medium">
+                                    <span className="text-gray-400">Contact:</span> {data.customerDetails.phone}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="p-4 flex flex-col justify-end text-right">
+                        <div className="space-y-1">
+                            <p className="text-xs text-gray-500 font-medium">Place of Supply</p>
+                            <p className="text-sm font-bold text-slate-800 uppercase">Local (Same State)</p>
+                        </div>
                     </div>
                 </div>
 
@@ -97,7 +131,32 @@ const Invoice = ({ data, onNewSale }) => {
                     </tbody>
                 </table>
 
-                {/* Tax Breakdown removed as per inclusive GST requirement */}
+                {/* Tax Breakdown */}
+                <div className="mb-8 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                    <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">GST Tax Breakdown</h3>
+                    <div className="grid grid-cols-2 gap-12">
+                        <div className="space-y-1.5">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">Central Tax (CGST):</span>
+                                <span className="font-bold text-slate-800">₹{Number(data.cgst || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">State Tax (SGST):</span>
+                                <span className="font-bold text-slate-800">₹{Number(data.sgst || 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="space-y-1.5 border-l-2 border-indigo-100 pl-12">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">Total Taxable Value:</span>
+                                <span className="font-bold text-slate-800">₹{Number(data.subtotal).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">Total GST Amount:</span>
+                                <span className="font-bold text-indigo-600">₹{Number(data.taxTotal || 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Totals */}
                 <div className="flex justify-end border-t-2 border-indigo-600 pt-4">
@@ -113,14 +172,22 @@ const Invoice = ({ data, onNewSale }) => {
                             </div>
                         )}
                         <div className="flex justify-between text-sm text-gray-600">
-                            <span>Tax (GST):</span>
-                            <span className="italic text-xs">Inclusive in Price</span>
+                            <span>Total GST:</span>
+                            <span className="font-bold">₹{Number(data.taxTotal).toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-2xl font-black text-indigo-900 pt-2 border-t border-dashed border-gray-300">
-                            <span>Total Amount:</span>
+                        {data.roundOff !== "0.00" && (
+                            <div className="flex justify-between text-sm text-gray-600">
+                                <span>Round Off:</span>
+                                <span className={Number(data.roundOff) >= 0 ? "text-green-600" : "text-red-600 font-semibold"}>
+                                    {Number(data.roundOff) >= 0 ? '+' : ''}{data.roundOff}
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex justify-between text-3xl font-black text-indigo-900 pt-3 border-t-2 border-indigo-200 mt-2">
+                            <span>Total:</span>
                             <span>₹{Number(data.grandTotal).toFixed(2)}</span>
                         </div>
-                        <p className="text-[10px] text-right text-gray-400 italic">** GST is inclusive in the product price</p>
+                        <p className="text-[9px] text-right text-gray-400 font-medium italic mt-2 uppercase tracking-tighter">** Rupees {data.grandTotal} Only</p>
                     </div>
                 </div>
 

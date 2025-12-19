@@ -89,11 +89,27 @@ const BillingInterface = () => {
     );
 
     // Calculations
-    // Inclusive Tax Calculations
-    const subtotal = cart.reduce((acc, item) => acc + (item.price - item.discount) * item.quantity, 0);
+    // Explicit GST Calculations
+    const itemsWithTax = cart.map(item => {
+        const itemSubtotal = (item.price - item.discount) * item.quantity;
+        const taxAmount = itemSubtotal * (item.gst_rate / 100);
+        return {
+            ...item,
+            itemTotal: itemSubtotal + taxAmount,
+            taxAmount
+        };
+    });
 
-    const total = Math.max(0, Math.round(subtotal - globalDiscount));
-    const roundOff = (total - (subtotal - globalDiscount)).toFixed(2);
+    const subtotal = itemsWithTax.reduce((acc, item) => acc + (item.price - item.discount) * item.quantity, 0);
+    const taxTotal = itemsWithTax.reduce((acc, item) => acc + item.taxAmount, 0);
+
+    // CGST and SGST split (50/50)
+    const cgst = taxTotal / 2;
+    const sgst = taxTotal / 2;
+
+    const rawTotal = subtotal + taxTotal - globalDiscount;
+    const total = Math.max(0, Math.round(rawTotal));
+    const roundOff = (total - rawTotal).toFixed(2);
 
     const [loading, setLoading] = useState(false); // Define loading state locally for UI feedback
 
@@ -102,10 +118,12 @@ const BillingInterface = () => {
 
         // Save Invoice Payload matching API schema
         const invoicePayload = {
-            items: cart,
+            items: itemsWithTax,
             subtotal,
             discountTotal: globalDiscount,
-            taxTotal: 0, // Tax is inclusive
+            taxTotal: taxTotal,
+            cgst,
+            sgst,
             roundOff,
             grandTotal: total,
             customerDetails: {
@@ -113,7 +131,7 @@ const BillingInterface = () => {
                 phone: customerPhone || ''
             },
             paymentMethod: 'CASH',
-            notes: 'GST is inclusive in product price'
+            notes: ''
         };
 
         try {
@@ -276,6 +294,21 @@ const BillingInterface = () => {
                                 onChange={(e) => setGlobalDiscount(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                             />
                         </div>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-gray-400">
+                        <span>CGST (Central Tax)</span>
+                        <span>₹{Number(cgst || 0).toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-gray-400">
+                        <span>SGST (State Tax)</span>
+                        <span>₹{Number(sgst || 0).toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-gray-400">
+                        <span>Tax Total</span>
+                        <span>₹{Number(taxTotal || 0).toFixed(2)}</span>
                     </div>
 
                     <div className="flex justify-between text-sm text-gray-400">
