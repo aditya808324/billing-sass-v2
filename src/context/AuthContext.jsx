@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import localDb from '../utils/localDb';
 
 const AuthContext = createContext();
 
@@ -13,6 +14,9 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Init local DB on first visit
+        localDb.init();
+
         // Check for existing token
         const token = localStorage.getItem('token');
         if (token) {
@@ -23,13 +27,20 @@ export const AuthProvider = ({ children }) => {
                     if (res.ok) return res.json();
                     throw new Error('Invalid token');
                 })
-                .then(data => setUser(data.user))
+                .then(data => {
+                    setUser(data.user);
+                    // Sync local profile from server
+                    localDb.save('profile', data.user);
+                })
                 .catch(() => {
                     localStorage.removeItem('token');
-                    setUser(null);
+                    // Fallback to local profile
+                    setUser(localDb.get('profile'));
                 })
                 .finally(() => setLoading(false));
         } else {
+            // Load local profile for guest mode
+            setUser(localDb.get('profile'));
             setLoading(false);
         }
     }, []);
@@ -66,15 +77,29 @@ export const AuthProvider = ({ children }) => {
     };
 
     const updateProfile = async (updates) => {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/auth/profile', {
-            method: 'PUT',
-            headers: { Authorization: `Bearer ${token}` },
-            body: JSON.stringify(updates)
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setUser(data.user);
+        // Update local first
+        const currentProfile = localDb.get('profile') || {};
+        const newProfile = { ...currentProfile, ...updates };
+        localDb.save('profile', newProfile);
+        setUser(newProfile);
+
+        if (!localStorage.getItem('token')) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` },
+                body: JSON.stringify(updates)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setUser(data.user);
+                localDb.save('profile', data.user);
+            }
+        } catch (err) {
+            console.warn('Offline: Profile updated locally only');
+        }
     };
 
     return (

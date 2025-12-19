@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import localDb from '../utils/localDb';
 
 const ProductContext = createContext();
 
@@ -15,8 +16,16 @@ export const ProductProvider = ({ children }) => {
     const { user } = useAuth();
 
     const fetchProducts = async () => {
-        if (!user) return;
         setLoading(true);
+        // Always load local products as base or offline backup
+        const localProducts = localDb.getCollection('products');
+        setProducts(localProducts);
+
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             const res = await fetch('/api/products', {
@@ -25,9 +34,11 @@ export const ProductProvider = ({ children }) => {
             if (res.ok) {
                 const data = await res.json();
                 setProducts(data);
+                // Sync to local for offline use
+                localDb.save('products', data);
             }
         } catch (error) {
-            console.error('Failed to fetch products', error);
+            console.warn('Backend unreachable, using local products', error);
         } finally {
             setLoading(false);
         }
@@ -38,47 +49,74 @@ export const ProductProvider = ({ children }) => {
     }, [user]);
 
     const addProduct = async (product) => {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/products', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(product)
-        });
-        if (res.ok) {
-            const newProduct = await res.json();
-            setProducts(prev => [...prev, newProduct]);
-            return newProduct;
+        // Optimistic update locally
+        const newLocalProduct = localDb.addToCollection('products', product);
+        setProducts(prev => [...prev, newLocalProduct]);
+
+        if (!user) return newLocalProduct;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(product)
+            });
+            if (res.ok) {
+                const newProduct = await res.json();
+                // Replace temp local product with server product
+                setProducts(prev => prev.map(p => p.id === newLocalProduct.id ? newProduct : p));
+                return newProduct;
+            }
+        } catch (err) {
+            console.warn('Offline: Product saved locally only');
         }
-        throw new Error('Failed to add product');
+        return newLocalProduct;
     };
 
     const deleteProduct = async (id) => {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/products/${id}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-            setProducts(prev => prev.filter(p => p.id !== id));
+        setProducts(prev => prev.filter(p => p.id !== id));
+        localDb.removeFromCollection('products', id);
+
+        if (!user) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            await fetch(`/api/products/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+        } catch (err) {
+            console.warn('Offline: Deleted locally only');
         }
     };
 
     const updateProduct = async (id, updatedData) => {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/products/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(updatedData)
-        });
-        if (res.ok) {
-            const updated = await res.json();
-            setProducts(prev => prev.map(p => p.id === id ? updated : p));
+        // Local update
+        const updatedLocal = localDb.updateInCollection('products', id, updatedData);
+        setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
+
+        if (!user) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/products/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedData)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setProducts(prev => prev.map(p => p.id === id ? updated : p));
+            }
+        } catch (err) {
+            console.warn('Offline: Updated locally only');
         }
     };
 

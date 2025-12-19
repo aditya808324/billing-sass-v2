@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import localDb from '../utils/localDb';
 
 const InvoiceContext = createContext();
 
@@ -15,8 +16,16 @@ export const InvoiceProvider = ({ children }) => {
     const { user } = useAuth();
 
     const fetchInvoices = async () => {
-        if (!user) return;
         setLoading(true);
+        // Load local invoices
+        const localInvoices = localDb.getCollection('invoices');
+        setInvoices(localInvoices);
+
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             const res = await fetch('/api/invoices', {
@@ -25,9 +34,11 @@ export const InvoiceProvider = ({ children }) => {
             if (res.ok) {
                 const data = await res.json();
                 setInvoices(data);
+                // Sync to local
+                localDb.save('invoices', data);
             }
         } catch (error) {
-            console.error('Failed to fetch invoices', error);
+            console.warn('Backend unreachable, using local invoices', error);
         } finally {
             setLoading(false);
         }
@@ -38,24 +49,33 @@ export const InvoiceProvider = ({ children }) => {
     }, [user]);
 
     const addInvoice = async (invoiceData) => {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/invoices', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(invoiceData)
-        });
+        // Optimistic local save
+        const newLocalInvoice = localDb.addToCollection('invoices', invoiceData);
+        setInvoices(prev => [newLocalInvoice, ...prev]);
 
-        if (res.ok) {
-            const newInvoice = await res.json();
-            setInvoices(prev => [newInvoice, ...prev]);
-            return newInvoice;
-        } else {
-            const err = await res.json();
-            throw new Error(err.error || 'Failed to create invoice');
+        if (!user) return newLocalInvoice;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/invoices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(invoiceData)
+            });
+
+            if (res.ok) {
+                const newInvoice = await res.json();
+                // Replace temp with server invoice
+                setInvoices(prev => prev.map(inv => inv.id === newLocalInvoice.id ? newInvoice : inv));
+                return newInvoice;
+            }
+        } catch (err) {
+            console.warn('Offline: Invoice saved locally only');
         }
+        return newLocalInvoice;
     };
 
     const getStats = () => {
