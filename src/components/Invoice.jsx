@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Printer, CheckCircle } from 'lucide-react';
 
 const Invoice = ({ data, onNewSale }) => {
     const { user } = useAuth();
